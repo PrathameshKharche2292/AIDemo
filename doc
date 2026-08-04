@@ -1,4 +1,25 @@
-st.subheader("🤖 MediNexa AI Health Assistant")
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# HEALTH ASSISTANT FUNCTION
+
+def health_assistant(
+    question,
+    report_data,
+    abnormalities
+):
+
+    ...
+    return response
+
+
+# HEALTH ASSISTANT UI
+
+st.subheader(
+    "🤖 MediNexa AI Health Assistant"
+)
 
 question = st.text_input(
     "Ask a question about your report"
