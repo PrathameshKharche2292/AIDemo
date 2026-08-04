@@ -1,0 +1,6 @@
+streamlit
+pdfplumber
+plotly
+pandas
+requests
+beautifulsoup4
