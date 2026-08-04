@@ -1,0 +1,91 @@
+# --------------------------------------------------
+# HEALTH ASSISTANT
+# --------------------------------------------------
+
+st.subheader("🤖 MediNexa AI Health Assistant")
+
+question = st.text_input(
+    "Ask a question about your report"
+)
+
+if question:
+
+    q = question.lower()
+
+    if "doctor" in q or "specialist" in q:
+
+        specialists = recommend_specialists(
+            abnormalities
+        )
+
+        st.info(
+            "Recommended Specialists: "
+            + ", ".join(specialists)
+        )
+
+    elif "abnormal" in q:
+
+        if abnormalities:
+
+            for item in abnormalities:
+
+                st.warning(
+                    f"{item['parameter']} is "
+                    f"{item['status']} "
+                    f"(Value: {item['value']})"
+                )
+
+        else:
+
+            st.success(
+                "No abnormalities detected."
+            )
+
+    elif "thyroid" in q or "tsh" in q:
+
+        if "TSH" in report_data:
+
+            st.info(
+                f"TSH value is {report_data['TSH']}. "
+                f"This may indicate thyroid dysfunction."
+            )
+
+        else:
+
+            st.info(
+                "TSH data not found in report."
+            )
+
+    elif "ldl" in q or "cholesterol" in q:
+
+        if "LDL" in report_data:
+
+            st.info(
+                f"LDL value is {report_data['LDL']}."
+            )
+
+    elif "hba1c" in q or "diabetes" in q:
+
+        if "HbA1c" in report_data:
+
+            st.info(
+                f"HbA1c value is "
+                f"{report_data['HbA1c']}."
+            )
+
+    elif "health score" in q:
+
+        st.info(
+            f"Health Score: {score}/100"
+        )
+
+    else:
+
+        st.info(
+            "Try asking:\n"
+            "- Which specialist should I consult?\n"
+            "- Do I have thyroid issues?\n"
+            "- Show abnormalities\n"
+            "- What is my LDL value?\n"
+            "- What is my health score?"
+        )
