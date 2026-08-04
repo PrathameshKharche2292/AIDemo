@@ -1,0 +1,621 @@
+import streamlit as st
+import pdfplumber
+import pandas as pd
+import plotly.graph_objects as go
+import re
+import requests
+from bs4 import BeautifulSoup
+import urllib.parse
+
+# --------------------------------------------------
+# PAGE CONFIG
+# --------------------------------------------------
+
+st.set_page_config(
+    page_title="MediGenie AI",
+    layout="wide"
+)
+
+st.title(" MediGenie AI")
+st.subheader("Dynamic Blood Report Analyzer")
+
+# --------------------------------------------------
+# LOAD REFERENCE DATA
+# --------------------------------------------------
+
+try:
+    reference_df = pd.read_csv("lab_reference.csv")
+    st.success("✅ Reference data loaded successfully")
+except Exception as e:
+    st.error(f"Error loading lab_reference.csv : {e}")
+    st.stop()
+
+# --------------------------------------------------
+# PDF READER
+# --------------------------------------------------
+
+def extract_pdf_text(uploaded_file):
+
+    text = ""
+
+    try:
+        with pdfplumber.open(uploaded_file) as pdf:
+
+            for page in pdf.pages:
+
+                page_text = page.extract_text()
+
+                if page_text:
+                    text += page_text + "\n"
+
+        return text
+
+    except Exception as e:
+
+        st.error(f"PDF Reading Error: {e}")
+        return ""
+
+
+# --------------------------------------------------
+# DYNAMIC PARAMETER EXTRACTION
+# --------------------------------------------------
+
+def extract_all_parameters(text):
+
+    results = {}
+
+    lines = text.splitlines()
+
+    pattern = re.compile(
+        r'([A-Za-z0-9\s()/%._-]+)\s*[:\-]\s*([0-9]+\.?[0-9]*)'
+    )
+
+    for line in lines:
+
+        match = pattern.search(line)
+
+        if match:
+
+            parameter = match.group(1).strip()
+
+            try:
+                value = float(match.group(2))
+                results[parameter] = value
+            except:
+                pass
+
+    return results
+
+
+# --------------------------------------------------
+# ABNORMAL DETECTION
+# --------------------------------------------------
+
+def detect_abnormalities(report_data):
+
+    abnormalities = []
+
+    for parameter, value in report_data.items():
+
+        found = reference_df[
+            reference_df["parameter"].str.lower()
+            ==
+            parameter.lower()
+        ]
+
+        if found.empty:
+            continue
+
+        min_val = float(found.iloc[0]["min"])
+        max_val = float(found.iloc[0]["max"])
+        specialist = found.iloc[0]["specialist"]
+
+        if value < min_val:
+
+            abnormalities.append({
+                "parameter": parameter,
+                "value": value,
+                "status": "LOW",
+                "specialist": specialist
+            })
+
+        elif value > max_val:
+
+            abnormalities.append({
+                "parameter": parameter,
+                "value": value,
+                "status": "HIGH",
+                "specialist": specialist
+            })
+
+    return abnormalities
+
+
+# --------------------------------------------------
+# SPECIALIST RECOMMENDATION
+# --------------------------------------------------
+
+def recommend_specialists(abnormalities):
+
+    specialists = set()
+
+    for item in abnormalities:
+        specialists.add(item["specialist"])
+
+    return sorted(list(specialists))
+
+
+# --------------------------------------------------
+# HEALTH SUMMARY
+# --------------------------------------------------
+
+def generate_summary(abnormalities):
+
+    summary = []
+
+    for item in abnormalities:
+
+        summary.append(
+            f"{item['parameter']} is {item['status']} "
+            f"(Value: {item['value']})"
+        )
+
+    return summary
+
+
+# --------------------------------------------------
+# LIFESTYLE RECOMMENDATIONS
+# --------------------------------------------------
+
+def lifestyle_recommendations(abnormalities):
+
+    recommendations = []
+
+    for item in abnormalities:
+
+        parameter = item["parameter"].lower()
+
+        if "hba1c" in parameter:
+
+            recommendations.append(
+                "Reduce sugar intake and walk 30 minutes daily."
+            )
+
+        elif "ldl" in parameter:
+
+            recommendations.append(
+                "Avoid oily food and increase cardio exercise."
+            )
+
+        elif "vitamind" in parameter.replace(" ", ""):
+
+            recommendations.append(
+                "Increase sunlight exposure and Vitamin D foods."
+            )
+
+        elif "creatinine" in parameter:
+
+            recommendations.append(
+                "Stay hydrated and monitor kidney function."
+            )
+
+        elif "tsh" in parameter:
+
+            recommendations.append(
+                "Schedule a thyroid evaluation."
+            )
+
+        elif "hemoglobin" in parameter:
+
+            recommendations.append(
+                "Increase iron-rich foods."
+            )
+
+    if len(recommendations) == 0:
+
+        recommendations.append(
+            "Maintain a healthy diet and annual health checks."
+        )
+
+    return list(set(recommendations))
+
+
+# --------------------------------------------------
+# HEALTH SCORE
+# --------------------------------------------------
+
+def calculate_score(abnormalities):
+
+    score = 100
+
+    score -= (len(abnormalities) * 10)
+
+    if score < 0:
+        score = 0
+
+    return score
+
+
+# --------------------------------------------------
+# DOCTOR NETWORK
+# --------------------------------------------------
+# --------------------------------------------------
+# LIVE DOCTOR DISCOVERY AGENT
+# --------------------------------------------------
+
+def get_live_doctors(specialist, city):
+
+    results = []
+
+    try:
+
+        search_query = f"{specialist} {city}"
+
+        response = requests.get(
+            "https://html.duckduckgo.com/html/",
+            params={"q": search_query},
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            },
+            timeout=10
+        )
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        search_results = soup.select(".result")
+
+        for item in search_results[:5]:
+
+            title = item.select_one(
+                ".result__title"
+            )
+
+            snippet = item.select_one(
+                ".result__snippet"
+            )
+
+            results.append({
+
+                "name":
+                title.get_text(strip=True)
+                if title else "Unknown",
+
+                "details":
+                snippet.get_text(strip=True)
+                if snippet else "No details"
+
+            })
+
+    except Exception:
+
+        pass
+
+    return results
+
+# --------------------------------------------------
+# DOCTOR SEARCH LINKS
+# --------------------------------------------------
+
+def get_doctor_search_links(specialist, city):
+
+    query = f"{specialist} in {city}"
+
+    google_link = (
+        "https://www.google.com/search?q=" +
+        urllib.parse.quote(query)
+    )
+
+    practo_link = (
+        "https://www.practo.com/search/doctors?results_type=doctor&q=" +
+        urllib.parse.quote(query)
+    )
+
+    return {
+        "google": google_link,
+        "practo": practo_link
+    }
+
+doctor_network = {
+
+    "Cardiologist": {
+        "doctor": "Dr Amit Sharma",
+        "location": "Kharadi Pune",
+        "rating": "4.8"
+    },
+
+    "Endocrinologist": {
+        "doctor": "Dr Priya Mehta",
+        "location": "Viman Nagar Pune",
+        "rating": "4.9"
+    },
+
+    "General Physician": {
+        "doctor": "Dr Rajesh Joshi",
+        "location": "Hadapsar Pune",
+        "rating": "4.7"
+    },
+
+    "Hematologist": {
+        "doctor": "Dr Sneha Kulkarni",
+        "location": "Baner Pune",
+        "rating": "4.8"
+    },
+
+    "Nephrologist": {
+        "doctor": "Dr Sameer Patil",
+        "location": "Wakad Pune",
+        "rating": "4.8"
+    },
+
+    "Gastroenterologist": {
+        "doctor": "Dr Ankit Deshmukh",
+        "location": "Shivaji Nagar Pune",
+        "rating": "4.7"
+    }
+}
+
+
+# --------------------------------------------------
+# FILE UPLOAD
+# --------------------------------------------------
+city = st.text_input(
+    "Enter City",
+    value="Pune"
+)
+
+uploaded_file = st.file_uploader(
+    "Upload Blood Report PDF",
+    type=["pdf"]
+)
+
+# --------------------------------------------------
+# PROCESS REPORT
+# --------------------------------------------------
+
+if uploaded_file is not None:
+
+    st.success("✅ PDF Uploaded Successfully")
+
+    report_text = extract_pdf_text(uploaded_file)
+
+    st.subheader(" Extracted PDF Text")
+
+    st.text(report_text[:5000])
+
+    report_data = extract_all_parameters(report_text)
+
+    st.subheader(" Detected Parameters")
+
+    if report_data:
+
+        st.json(report_data)
+
+    else:
+
+        st.error(
+            "No parameters detected. "
+            "Please check PDF format."
+        )
+
+    abnormalities = detect_abnormalities(report_data)
+
+    st.subheader("⚠ Abnormal Findings")
+
+    if abnormalities:
+
+        abnormal_df = pd.DataFrame(abnormalities)
+
+        st.dataframe(
+            abnormal_df,
+            use_container_width=True
+        )
+
+    else:
+
+        st.success(
+            "No abnormalities found."
+        )
+
+    # Summary
+
+    st.subheader(" Health Risk Summary")
+
+    summary = generate_summary(
+        abnormalities
+    )
+
+    if summary:
+
+        for item in summary:
+            st.warning(item)
+
+    # Specialists
+
+    specialists = recommend_specialists(
+        abnormalities
+    )
+
+# Specialists
+
+specialists = recommend_specialists(
+    abnormalities
+)
+
+st.subheader("‍⚕️ Recommended Specialists")
+
+if specialists:
+
+    for specialist in specialists:
+
+        st.info(specialist)
+
+        query = f"{specialist} in {city}"
+
+        google_link = (
+            "https://www.google.com/search?q="
+            + query.replace(" ", "+")
+        )
+
+        st.markdown(
+            f" Google Search: {google_link}"
+        )
+
+        if specialist in doctor_network:
+
+            doctor = doctor_network[
+                specialist
+            ]
+
+            st.success(
+                f"""
+Recommended Doctor
+
+Doctor: {doctor['doctor']}
+
+Location: {doctor['location']}
+
+Rating: ⭐ {doctor['rating']}
+"""
+            )
+
+            if st.button(
+                f"Book Appointment - {doctor['doctor']}"
+            ):
+
+                st.success(
+                    "✅ Appointment Request Submitted"
+                )
+
+
+
+
+                    
+
+    # Recommendations
+
+    st.subheader("綾 Lifestyle Recommendations")
+
+    for recommendation in lifestyle_recommendations(
+        abnormalities
+    ):
+        st.write("✅", recommendation)
+
+    # Health Score
+
+    score = calculate_score(
+        abnormalities
+    )
+
+    st.subheader("❤️ Health Score")
+
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=score,
+            title={"text": "Health Score"},
+            gauge={
+                "axis": {"range": [0, 100]},
+                "bar": {"color": "green"}
+            }
+        )
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+   # --------------------------------------------------
+# HEALTH ASSISTANT
+# --------------------------------------------------
+
+st.subheader("烙 MediNexa AI Health Assistant")
+
+question = st.text_input(
+    "Ask a question about your report"
+)
+
+if question:
+
+    q = question.lower()
+
+    if "doctor" in q or "specialist" in q:
+
+        specialists = recommend_specialists(
+            abnormalities
+        )
+
+        st.info(
+            "Recommended Specialists: "
+            + ", ".join(specialists)
+        )
+
+    elif "abnormal" in q:
+
+        if abnormalities:
+
+            for item in abnormalities:
+
+                st.warning(
+                    f"{item['parameter']} is "
+                    f"{item['status']} "
+                    f"(Value: {item['value']})"
+                )
+
+        else:
+
+            st.success(
+                "No abnormalities detected."
+            )
+
+    elif "thyroid" in q or "tsh" in q:
+
+        if "TSH" in report_data:
+
+            st.info(
+                f"TSH value is {report_data['TSH']}. "
+                f"This may indicate thyroid dysfunction."
+            )
+
+        else:
+
+            st.info(
+                "TSH data not found in report."
+            )
+
+    elif "ldl" in q or "cholesterol" in q:
+
+        if "LDL" in report_data:
+
+            st.info(
+                f"LDL value is {report_data['LDL']}."
+            )
+
+    elif "hba1c" in q or "diabetes" in q:
+
+        if "HbA1c" in report_data:
+
+            st.info(
+                f"HbA1c value is "
+                f"{report_data['HbA1c']}."
+            )
+
+    elif "health score" in q:
+
+        st.info(
+            f"Health Score: {score}/100"
+        )
+
+    else:
+
+        st.info(
+            "Try asking:\n"
+            "- Which specialist should I consult?\n"
+            "- Do I have thyroid issues?\n"
+            "- Show abnormalities\n"
+            "- What is my LDL value?\n"
+            "- What is my health score?"
+        )
