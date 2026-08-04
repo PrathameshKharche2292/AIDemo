@@ -1,36 +1,240 @@
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
+# --------------------------------------------------
+# HEALTH ASSISTANT
+# --------------------------------------------------
 
-# HEALTH ASSISTANT FUNCTION
+def health_assistant(question, report_data, abnormalities):
 
-def health_assistant(
-    question,
-    report_data,
-    abnormalities
-):
+    question = question.lower().strip()
 
-    ...
-    return response
+    # Report summary
+    if any(word in question for word in [
+        "summary",
+        "explain",
+        "report",
+        "overview"
+    ]):
 
+        if abnormalities:
 
-# HEALTH ASSISTANT UI
+            response = "📋 Report Summary\n\n"
 
-st.subheader(
-    "🤖 MediNexa AI Health Assistant"
-)
+            for item in abnormalities:
 
-question = st.text_input(
-    "Ask a question about your report"
-)
+                response += (
+                    f"• {item['parameter']} is "
+                    f"{item['status']} "
+                    f"(Value: {item['value']})\n"
+                )
 
-if question:
+            return response
 
-    response = health_assistant(
-        question,
-        report_data,
-        abnormalities
+        return "✅ All analyzed parameters appear to be within normal limits."
+
+    # Abnormal findings
+    if any(word in question for word in [
+        "abnormal",
+        "abnormalities",
+        "issues",
+        "problems"
+    ]):
+
+        if abnormalities:
+
+            response = "⚠ Abnormal Findings\n\n"
+
+            for item in abnormalities:
+
+                response += (
+                    f"• {item['parameter']} - "
+                    f"{item['status']} "
+                    f"(Value: {item['value']})\n"
+                )
+
+            return response
+
+        return "✅ No abnormalities detected."
+
+    # Specialists
+    if any(word in question for word in [
+        "doctor",
+        "specialist",
+        "consult"
+    ]):
+
+        specialists = recommend_specialists(
+            abnormalities
+        )
+
+        if specialists:
+
+            return (
+                "👨‍⚕️ Recommended Specialists: "
+                + ", ".join(specialists)
+            )
+
+        return "No specialist recommendation available."
+
+    # Diet
+    if any(word in question for word in [
+        "diet",
+        "food",
+        "eat",
+        "nutrition"
+    ]):
+
+        return (
+            "🥗 Maintain a balanced diet rich in fruits, vegetables, "
+            "whole grains, lean protein and adequate hydration."
+        )
+
+    # Exercise
+    if any(word in question for word in [
+        "exercise",
+        "gym",
+        "workout",
+        "walking"
+    ]):
+
+        return (
+            "🏃 Regular walking, stretching and moderate exercise "
+            "are generally beneficial unless advised otherwise by your doctor."
+        )
+
+    # Thyroid
+    if any(word in question for word in [
+        "thyroid",
+        "tsh",
+        "t3",
+        "t4"
+    ]):
+
+        thyroid_params = []
+
+        for p, v in report_data.items():
+
+            if p.lower() in ["tsh", "t3", "t4"]:
+
+                thyroid_params.append(
+                    f"{p}: {v}"
+                )
+
+        if thyroid_params:
+
+            return (
+                "🦋 Thyroid Parameters:\n\n"
+                + "\n".join(thyroid_params)
+            )
+
+        return "No thyroid parameters found in the report."
+
+    # Diabetes
+    if any(word in question for word in [
+        "diabetes",
+        "sugar",
+        "hba1c",
+        "glucose"
+    ]):
+
+        diabetes_params = []
+
+        for p, v in report_data.items():
+
+            if p.lower() in [
+                "hba1c",
+                "glucose",
+                "fasting blood sugar"
+            ]:
+
+                diabetes_params.append(
+                    f"{p}: {v}"
+                )
+
+        if diabetes_params:
+
+            return (
+                "🩸 Diabetes Related Values:\n\n"
+                + "\n".join(diabetes_params)
+            )
+
+        return "No diabetes-related values found."
+
+    # Cholesterol
+    if any(word in question for word in [
+        "cholesterol",
+        "ldl",
+        "hdl",
+        "triglycerides"
+    ]):
+
+        lipid_params = []
+
+        for p, v in report_data.items():
+
+            if p.lower() in [
+                "ldl",
+                "hdl",
+                "triglycerides",
+                "total cholesterol"
+            ]:
+
+                lipid_params.append(
+                    f"{p}: {v}"
+                )
+
+        if lipid_params:
+
+            return (
+                "❤️ Lipid Profile:\n\n"
+                + "\n".join(lipid_params)
+            )
+
+        return "No lipid parameters found."
+
+    # Seriousness
+    if any(word in question for word in [
+        "serious",
+        "dangerous",
+        "concern",
+        "risk"
+    ]):
+
+        return (
+            f"⚠ {len(abnormalities)} abnormal finding(s) detected. "
+            "Please consult the recommended specialist for proper medical evaluation."
+        )
+
+    # Dynamic parameter lookup
+    for parameter, value in report_data.items():
+
+        if parameter.lower() in question:
+
+            return f"🔬 {parameter} value is {value}"
+
+    # List all detected parameters
+    if any(word in question for word in [
+        "parameters",
+        "values",
+        "results"
+    ]):
+
+        response = "📊 Detected Parameters\n\n"
+
+        for p, v in report_data.items():
+
+            response += f"• {p}: {v}\n"
+
+        return response
+
+    # Default answer
+    return (
+        "🤖 I can help with:\n\n"
+        "• Explain my report\n"
+        "• Show abnormalities\n"
+        "• Which specialist should I consult?\n"
+        "• Do I have thyroid issues?\n"
+        "• What is my LDL value?\n"
+        "• What is my TSH value?\n"
+        "• What foods should I eat?\n"
+        "• Is my report serious?\n"
+        "• Show all parameters\n"
     )
-
-    st.info(response)
