@@ -1,119 +1,15 @@
-# --------------------------------------------------
-# HEALTH ASSISTANT
-# --------------------------------------------------
+st.subheader("🤖 MediNexa AI Health Assistant")
 
-def health_assistant(question, report_data, abnormalities):
+question = st.text_input(
+    "Ask a question about your report"
+)
 
-    question = question.lower()
+if question:
 
-    # Report Summary
-
-    if (
-        "summary" in question or
-        "explain" in question or
-        "report" in question
-    ):
-
-        if abnormalities:
-
-            response = "Report Summary:\n\n"
-
-            for item in abnormalities:
-
-                response += (
-                    f"- {item['parameter']} is "
-                    f"{item['status']} "
-                    f"(Value: {item['value']})\n"
-                )
-
-            return response
-
-        return "All values appear normal."
-
-    # Abnormalities
-
-    if "abnormal" in question:
-
-        if abnormalities:
-
-            return "\n".join([
-                f"{item['parameter']} - {item['status']}"
-                for item in abnormalities
-            ])
-
-        return "No abnormalities detected."
-
-    # Specialists
-
-    if (
-        "doctor" in question or
-        "specialist" in question
-    ):
-
-        specialists = recommend_specialists(
-            abnormalities
-        )
-
-        return (
-            "Recommended Specialists: "
-            + ", ".join(specialists)
-        )
-
-    # Diet
-
-    if (
-        "diet" in question or
-        "food" in question or
-        "eat" in question
-    ):
-
-        return (
-            "Maintain a balanced diet with fruits, vegetables, "
-            "whole grains and adequate protein."
-        )
-
-    # Exercise
-
-    if (
-        "exercise" in question or
-        "walking" in question or
-        "gym" in question
-    ):
-
-        return (
-            "Regular walking and moderate exercise "
-            "are generally beneficial."
-        )
-
-    # Seriousness
-
-    if (
-        "serious" in question or
-        "concern" in question
-    ):
-
-        return (
-            f"{len(abnormalities)} abnormalities detected. "
-            "Please consult the recommended specialist."
-        )
-
-    # Dynamic parameter search
-
-    for parameter, value in report_data.items():
-
-        if parameter.lower() in question:
-
-            return (
-                f"{parameter} value is {value}"
-            )
-
-    return (
-        "Try asking:\n"
-        "- Explain my report\n"
-        "- What abnormalities were found?\n"
-        "- Which specialist should I consult?\n"
-        "- What foods should I eat?\n"
-        "- Is my report serious?\n"
-        "- What is my TSH value?\n"
-        "- What is my LDL value?"
+    response = health_assistant(
+        question,
+        report_data,
+        abnormalities
     )
+
+    st.info(response)
