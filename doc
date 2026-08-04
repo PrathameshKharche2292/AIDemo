@@ -1,65 +1,50 @@
-# --------------------------------------------------
-# HEALTH ASSISTANT
-# --------------------------------------------------
+# Specialists
 
-st.subheader("🤖 MediNexa AI Health Assistant")
-
-question = st.text_input(
-    "Ask a question about your report"
+specialists = recommend_specialists(
+    abnormalities
 )
 
-if question:
+st.subheader("👨‍⚕️ Recommended Specialists")
 
-    q = question.lower()
+if specialists:
 
-    if "doctor" in q or "specialist" in q:
+    for specialist in specialists:
 
-        st.info(
-            "Recommended specialists are displayed above."
+        st.info(specialist)
+
+        query = f"{specialist} in {city}"
+
+        google_link = (
+            "https://www.google.com/search?q="
+            + query.replace(" ", "+")
         )
 
-    elif "thyroid" in q or "tsh" in q:
-
-        if "TSH" in report_data:
-
-            st.info(
-                f"TSH value is {report_data['TSH']}. "
-                f"A high TSH may indicate thyroid dysfunction."
-            )
-
-    elif "ldl" in q:
-
-        if "LDL" in report_data:
-
-            st.info(
-                f"LDL value is {report_data['LDL']}."
-            )
-
-    elif "hba1c" in q:
-
-        if "HbA1c" in report_data:
-
-            st.info(
-                f"HbA1c value is {report_data['HbA1c']}."
-            )
-
-    elif "abnormal" in q:
-
-        for item in abnormalities:
-
-            st.warning(
-                f"{item['parameter']} "
-                f"{item['status']}"
-            )
-
-    elif "health score" in q:
-
-        st.info(
-            f"Health Score: {score}/100"
+        st.markdown(
+            f"🔍 Google Search: {google_link}"
         )
 
-    else:
+        if specialist in doctor_network:
 
-        st.info(
-            "I can answer questions about specialists, thyroid, LDL, HbA1c, abnormalities and health score."
-        )
+            doctor = doctor_network[
+                specialist
+            ]
+
+            st.success(
+                f"""
+Recommended Doctor
+
+Doctor: {doctor['doctor']}
+
+Location: {doctor['location']}
+
+Rating: ⭐ {doctor['rating']}
+"""
+            )
+
+            if st.button(
+                f"Book Appointment - {doctor['doctor']}"
+            ):
+
+                st.success(
+                    "✅ Appointment Request Submitted"
+                )
