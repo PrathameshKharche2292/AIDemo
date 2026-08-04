@@ -1,53 +1,65 @@
-if specialists:
+# --------------------------------------------------
+# HEALTH ASSISTANT
+# --------------------------------------------------
 
-    for specialist in specialists:
+st.subheader("🤖 MediNexa AI Health Assistant")
 
-        st.info(specialist)
+question = st.text_input(
+    "Ask a question about your report"
+)
 
-        st.write(
-            f"🔍 Doctor Discovery Agent searching in {city}..."
+if question:
+
+    q = question.lower()
+
+    if "doctor" in q or "specialist" in q:
+
+        st.info(
+            "Recommended specialists are displayed above."
         )
 
-        live_doctors = get_live_doctors(
-            specialist,
-            city
-        )
+    elif "thyroid" in q or "tsh" in q:
 
-        if live_doctors:
+        if "TSH" in report_data:
 
-            for doc in live_doctors:
-
-                st.success(
-                    f"""
-Doctor Information
-
-{doc['name']}
-
-{doc['details']}
-"""
-                )
-
-                if st.button(
-                    f"Book Appointment - {doc['name']}"
-                ):
-                    st.success(
-                        "✅ Appointment Request Submitted"
-                    )
-
-        else:
-
-            st.warning(
-                "Live search unavailable. Using local doctors."
+            st.info(
+                f"TSH value is {report_data['TSH']}. "
+                f"A high TSH may indicate thyroid dysfunction."
             )
 
-            if specialist in doctor_network:
+    elif "ldl" in q:
 
-                doctor = doctor_network[specialist]
+        if "LDL" in report_data:
 
-                st.write(f"""
-**Doctor:** {doctor['doctor']}
+            st.info(
+                f"LDL value is {report_data['LDL']}."
+            )
 
-**Location:** {doctor['location']}
+    elif "hba1c" in q:
 
-**Rating:** ⭐ {doctor['rating']}
-""")
+        if "HbA1c" in report_data:
+
+            st.info(
+                f"HbA1c value is {report_data['HbA1c']}."
+            )
+
+    elif "abnormal" in q:
+
+        for item in abnormalities:
+
+            st.warning(
+                f"{item['parameter']} "
+                f"{item['status']}"
+            )
+
+    elif "health score" in q:
+
+        st.info(
+            f"Health Score: {score}/100"
+        )
+
+    else:
+
+        st.info(
+            "I can answer questions about specialists, thyroid, LDL, HbA1c, abnormalities and health score."
+        )
