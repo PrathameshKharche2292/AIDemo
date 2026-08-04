@@ -1,0 +1,53 @@
+if specialists:
+
+    for specialist in specialists:
+
+        st.info(specialist)
+
+        st.write(
+            f"🔍 Doctor Discovery Agent searching in {city}..."
+        )
+
+        live_doctors = get_live_doctors(
+            specialist,
+            city
+        )
+
+        if live_doctors:
+
+            for doc in live_doctors:
+
+                st.success(
+                    f"""
+Doctor Information
+
+{doc['name']}
+
+{doc['details']}
+"""
+                )
+
+                if st.button(
+                    f"Book Appointment - {doc['name']}"
+                ):
+                    st.success(
+                        "✅ Appointment Request Submitted"
+                    )
+
+        else:
+
+            st.warning(
+                "Live search unavailable. Using local doctors."
+            )
+
+            if specialist in doctor_network:
+
+                doctor = doctor_network[specialist]
+
+                st.write(f"""
+**Doctor:** {doctor['doctor']}
+
+**Location:** {doctor['location']}
+
+**Rating:** ⭐ {doctor['rating']}
+""")
